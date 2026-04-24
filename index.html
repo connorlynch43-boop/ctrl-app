@@ -1,0 +1,1642 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CTRL — Instagram Content System</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=JetBrains+Mono:wght@300;400;500&display=swap');
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#080910;--surface:#0f1014;--surface2:#14151a;
+  --border:#1c1d24;--border2:#25262f;
+  --text:#e8e9f0;--muted:#52546a;--muted2:#38394a;
+  --r:#00d4c8;--r-dim:rgba(0,212,200,0.1);
+  --l:#36d399;--l-dim:rgba(54,211,153,0.1);
+  --c:#7b84ff;--c-dim:rgba(123,132,255,0.1);
+  --h:#ffd166;--h-dim:rgba(255,209,102,0.1);
+  --s:#e879f9;--s-dim:rgba(232,121,249,0.1);
+  --white:#fff;--danger:#ff4560;
+}
+body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-serif;min-height:100vh;overflow-x:hidden;}
+body::after{content:'';position:fixed;inset:0;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E");pointer-events:none;z-index:9999;opacity:0.4;}
+.shell{display:flex;height:100vh;overflow:hidden;}
+
+/* SIDEBAR */
+.sidebar{width:220px;flex-shrink:0;background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;}
+.sidebar-logo{padding:24px 20px 20px;border-bottom:1px solid var(--border);}
+.logo-mark{font-family:'JetBrains Mono',monospace;font-size:20px;font-weight:500;letter-spacing:-1px;color:var(--white);}
+.logo-mark span{color:var(--r);}
+.logo-sub{font-size:10px;color:var(--muted);letter-spacing:2px;text-transform:uppercase;margin-top:3px;}
+.nav{flex:1;padding:16px 12px;display:flex;flex-direction:column;gap:4px;}
+.nav-item{display:flex;align-items:center;gap:12px;padding:10px 12px;border-radius:8px;cursor:pointer;transition:all .15s;border:1px solid transparent;}
+.nav-item:hover{background:var(--surface2);}
+.nav-item.active{background:var(--surface2);border-color:var(--border2);}
+.nav-pip{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
+.nav-item[data-tab="R"] .nav-pip{background:var(--r);box-shadow:0 0 6px var(--r);}
+.nav-item[data-tab="L"] .nav-pip{background:var(--l);box-shadow:0 0 6px var(--l);}
+.nav-item[data-tab="C"] .nav-pip{background:var(--c);box-shadow:0 0 6px var(--c);}
+.nav-item[data-tab="H"] .nav-pip{background:var(--h);box-shadow:0 0 6px var(--h);}
+.nav-item[data-tab="S"] .nav-pip{background:var(--s);box-shadow:0 0 6px var(--s);}
+.nav-item[data-tab="CAL"] .nav-pip{background:var(--muted);}
+.nav-code{font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:500;width:16px;}
+.nav-item[data-tab="R"] .nav-code{color:var(--r);}
+.nav-item[data-tab="L"] .nav-code{color:var(--l);}
+.nav-item[data-tab="C"] .nav-code{color:var(--c);}
+.nav-item[data-tab="H"] .nav-code{color:var(--h);}
+.nav-item[data-tab="S"] .nav-code{color:var(--s);}
+.nav-item[data-tab="CAL"] .nav-code{color:var(--muted);}
+.nav-label{font-size:13px;font-weight:500;}
+.nav-item:not(.active) .nav-label{color:var(--muted);}
+.nav-badge{margin-left:auto;background:var(--surface);border:1px solid var(--border2);border-radius:10px;padding:1px 7px;font-size:10px;font-family:'JetBrains Mono',monospace;color:var(--muted);}
+.nav-divider{height:1px;background:var(--border);margin:8px 0;}
+.sidebar-footer{padding:16px 12px;border-top:1px solid var(--border);display:flex;flex-direction:column;gap:8px;}
+.publish-all-btn{width:100%;background:linear-gradient(135deg,var(--r),#00ede0);border:none;border-radius:8px;padding:11px 12px;color:#000;font-family:'Space Grotesk',sans-serif;font-size:12px;font-weight:700;cursor:pointer;letter-spacing:.5px;transition:all .2s;text-transform:uppercase;}
+.publish-all-btn:hover{transform:translateY(-1px);box-shadow:0 4px 20px rgba(0,212,200,.4);}
+.creds-btn{width:100%;background:transparent;border:1px solid var(--border2);border-radius:8px;padding:9px 12px;color:var(--muted);font-family:'Space Grotesk',sans-serif;font-size:12px;cursor:pointer;text-align:left;transition:all .15s;display:flex;align-items:center;gap:8px;}
+.creds-btn:hover{color:var(--text);background:var(--surface2);}
+
+/* MAIN */
+.main{flex:1;overflow:hidden;display:flex;flex-direction:column;}
+.topbar{height:60px;border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 28px;gap:16px;flex-shrink:0;}
+.topbar-title{font-size:15px;font-weight:600;}
+.topbar-sub{font-size:12px;color:var(--muted);margin-left:4px;}
+.topbar-right{margin-left:auto;display:flex;align-items:center;gap:10px;}
+.last-refresh{font-size:11px;color:var(--muted);font-family:'JetBrains Mono',monospace;}
+.refresh-btn{background:var(--surface2);border:1px solid var(--border2);border-radius:6px;padding:6px 12px;color:var(--muted);font-size:11px;font-family:'Space Grotesk',sans-serif;cursor:pointer;transition:all .15s;display:flex;align-items:center;gap:6px;}
+.refresh-btn:hover{color:var(--text);border-color:var(--muted);}
+.content{flex:1;overflow-y:auto;padding:24px 28px;}
+.content::-webkit-scrollbar{width:4px;}
+.content::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px;}
+.tab-pane{display:none;}
+.tab-pane.active{display:block;}
+
+/* PUBLISH BAR */
+.publish-bar{display:flex;align-items:center;justify-content:space-between;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px 18px;margin-bottom:20px;}
+.publish-info{font-size:12px;color:var(--muted);}
+.publish-info strong{color:var(--text);font-size:13px;display:block;margin-bottom:2px;}
+.pub-time-input{background:none;border:none;border-bottom:1px dashed var(--border2);color:var(--text);font-family:'JetBrains Mono',monospace;font-size:12px;outline:none;padding:0 2px;}
+.pub-date-input{background:none;border:none;border-bottom:1px dashed var(--border2);color:var(--text);font-family:'Space Grotesk',sans-serif;font-size:12px;outline:none;padding:0 2px;width:130px;}
+
+/* STATS */
+.stats-row{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:24px;}
+.stat-card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px 18px;}
+.stat-val{font-family:'JetBrains Mono',monospace;font-size:24px;font-weight:500;margin-bottom:4px;}
+.stat-label{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;}
+
+/* SECTION HEADER */
+.section-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;}
+.section-title{font-size:13px;font-weight:600;text-transform:uppercase;letter-spacing:2px;color:var(--muted);}
+.section-actions{display:flex;gap:8px;align-items:center;}
+
+/* TABLE */
+.table-wrap{overflow-x:auto;border-radius:10px;border:1px solid var(--border);}
+.dash-table{width:100%;border-collapse:collapse;font-size:13px;min-width:700px;}
+.dash-table th{text-align:left;padding:8px 12px;font-size:10px;text-transform:uppercase;letter-spacing:1.5px;color:var(--muted);border-bottom:1px solid var(--border);font-weight:500;}
+.dash-table td{padding:11px 12px;border-bottom:1px solid var(--border);vertical-align:middle;}
+.dash-table tr:last-child td{border-bottom:none;}
+.dash-table tbody tr:hover td{background:var(--surface2);}
+.thumb-cell{display:flex;align-items:center;gap:12px;}
+.thumb{width:36px;height:36px;border-radius:6px;background:var(--surface2);overflow:hidden;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:14px;}
+.thumb img{width:100%;height:100%;object-fit:cover;}
+.caption-text{font-size:12px;color:var(--text);max-width:200px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.caption-date{font-size:10px;color:var(--muted);margin-top:2px;font-family:'JetBrains Mono',monospace;}
+.score-pill{display:inline-flex;align-items:center;background:var(--surface2);border:1px solid var(--border2);border-radius:20px;padding:3px 10px;font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:500;}
+.sched-date{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--muted);}
+.sched-date.set{color:var(--text);}
+.status-chip{display:inline-block;padding:3px 9px;border-radius:20px;font-size:10px;font-weight:600;letter-spacing:.5px;text-transform:uppercase;}
+.status-chip.pending{background:rgba(255,209,102,.12);color:var(--h);}
+.status-chip.queued{background:rgba(54,211,153,.12);color:var(--l);}
+.status-chip.posted{background:rgba(123,132,255,.12);color:var(--c);}
+.action-cell{display:flex;gap:6px;justify-content:flex-end;}
+.icon-btn{width:28px;height:28px;border-radius:6px;background:var(--surface2);border:1px solid var(--border2);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:12px;transition:all .15s;color:var(--muted);}
+.icon-btn:hover{border-color:var(--muted);color:var(--text);}
+.icon-btn.danger:hover{border-color:var(--danger);color:var(--danger);background:rgba(255,69,96,.08);}
+
+/* PILLAR BADGE */
+.pillar-badge{display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:5px;font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;}
+.pillar-badge.R{background:var(--r-dim);color:var(--r);}
+.pillar-badge.L{background:var(--l-dim);color:var(--l);}
+.pillar-badge.C{background:var(--c-dim);color:var(--c);}
+.pillar-badge.H{background:var(--h-dim);color:var(--h);}
+.pillar-badge.S{background:var(--s-dim);color:var(--s);}
+
+/* FILTER TABS */
+.filter-tabs{display:flex;gap:4px;margin-bottom:16px;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:4px;width:fit-content;}
+.filter-tab{padding:6px 14px;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;background:transparent;border:none;color:var(--muted);font-family:'Space Grotesk',sans-serif;transition:all .15s;}
+.filter-tab.active{background:var(--surface2);border:1px solid var(--border2);}
+.filter-tab.active.f-all{color:var(--text);}
+.filter-tab.active.f-S{color:var(--s);}
+.filter-tab.active.f-L{color:var(--l);}
+.filter-tab.active.f-C{color:var(--c);}
+.filter-tab.active.f-H{color:var(--h);}
+
+/* BUTTONS */
+.btn{display:inline-flex;align-items:center;gap:7px;padding:9px 18px;border-radius:8px;font-family:'Space Grotesk',sans-serif;font-size:13px;font-weight:600;cursor:pointer;border:none;transition:all .15s;white-space:nowrap;}
+.btn-r{background:var(--r);color:#000;}
+.btn-r:hover{background:#00ede0;box-shadow:0 4px 16px rgba(0,212,200,.35);}
+.btn-l{background:var(--l);color:#000;}
+.btn-l:hover{background:#50e0aa;box-shadow:0 4px 16px rgba(54,211,153,.35);}
+.btn-c{background:var(--c);color:#000;}
+.btn-c:hover{background:#9099ff;box-shadow:0 4px 16px rgba(123,132,255,.35);}
+.btn-h{background:var(--h);color:#000;}
+.btn-h:hover{background:#ffe080;box-shadow:0 4px 16px rgba(255,209,102,.35);}
+.btn-s{background:var(--s);color:#000;}
+.btn-s:hover{background:#f0a0ff;box-shadow:0 4px 16px rgba(232,121,249,.35);}
+.btn-ghost{background:transparent;border:1px solid var(--border2);color:var(--muted);}
+.btn-ghost:hover{border-color:var(--muted2);color:var(--text);}
+.btn-danger{background:var(--danger);color:#fff;}
+.btn-danger:hover{background:#ff6070;box-shadow:0 4px 16px rgba(255,69,96,.35);}
+.btn-sm{padding:6px 12px;font-size:12px;border-radius:6px;}
+.btn:disabled{opacity:.4;cursor:not-allowed;}
+
+/* FORMS */
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;}
+.field{display:flex;flex-direction:column;gap:6px;}
+label.lbl{font-size:10px;text-transform:uppercase;letter-spacing:1.5px;color:var(--muted);}
+input[type=text],input[type=password],input[type=date],input[type=time],select,textarea{background:var(--surface);border:1px solid var(--border2);border-radius:8px;padding:10px 12px;font-family:'Space Grotesk',sans-serif;font-size:13px;color:var(--text);outline:none;transition:border-color .15s;width:100%;}
+input:focus,select:focus,textarea:focus{border-color:var(--muted);}
+select option{background:var(--surface2);}
+textarea{resize:vertical;min-height:80px;line-height:1.6;}
+.hint{font-size:11px;color:var(--muted);line-height:1.5;}
+.hint a{color:var(--r);text-decoration:none;}
+.divider{height:1px;background:var(--border);margin:20px 0;}
+.section-label{font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:1.5px;color:var(--muted);margin-bottom:12px;}
+
+/* SCHEDULE QUEUE */
+.queue-list{display:flex;flex-direction:column;gap:8px;margin-bottom:20px;}
+.queue-item{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:12px 16px;display:grid;grid-template-columns:auto 1fr auto auto auto;align-items:center;gap:12px;}
+.queue-item.conflict{border-color:rgba(255,69,96,.3);background:rgba(255,69,96,.04);}
+.queue-filename{font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--text);}
+.queue-sched{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--r);}
+.queue-note{font-size:10px;color:var(--muted);}
+.queue-conflict-msg{font-size:10px;color:var(--danger);}
+
+/* PROGRESS */
+.progress-wrap{background:var(--surface2);border-radius:2px;height:3px;overflow:hidden;margin:12px 0;}
+.progress-bar{height:100%;border-radius:2px;transition:width .4s ease;}
+.pb-r{background:var(--r);}
+.pb-l{background:var(--l);}
+.pb-c{background:var(--c);}
+.pb-h{background:var(--h);}
+.pb-s{background:var(--s);}
+
+/* STATUS */
+.status-bar{display:flex;align-items:center;gap:10px;border-radius:8px;padding:10px 14px;font-size:12px;margin-bottom:16px;}
+.status-bar.info{background:var(--r-dim);border:1px solid rgba(0,212,200,.2);color:var(--r);}
+.status-bar.success{background:var(--l-dim);border:1px solid rgba(54,211,153,.2);color:var(--l);}
+.status-bar.error{background:rgba(255,69,96,.1);border:1px solid rgba(255,69,96,.2);color:var(--danger);}
+.spinner{width:14px;height:14px;border:2px solid rgba(255,255,255,.2);border-top-color:currentColor;border-radius:50%;animation:spin .7s linear infinite;flex-shrink:0;}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* EMPTY STATE */
+.empty-state{text-align:center;padding:60px 20px;color:var(--muted);}
+.empty-icon{font-size:36px;margin-bottom:12px;opacity:.4;}
+.empty-title{font-size:14px;font-weight:600;margin-bottom:6px;}
+.empty-sub{font-size:12px;line-height:1.6;}
+
+/* MODAL */
+.modal-bg{display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:1000;align-items:center;justify-content:center;backdrop-filter:blur(4px);}
+.modal-bg.open{display:flex;}
+.modal{background:var(--surface);border:1px solid var(--border2);border-radius:14px;padding:28px;width:500px;max-width:90vw;max-height:90vh;overflow-y:auto;animation:fadeUp .25s ease;}
+.modal-title{font-size:16px;font-weight:700;margin-bottom:20px;}
+.modal-actions{display:flex;gap:10px;justify-content:flex-end;margin-top:20px;}
+@keyframes fadeUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+
+/* WEIGHTS */
+.w-row{margin-bottom:14px;}
+.w-row-label{display:flex;justify-content:space-between;margin-bottom:5px;font-size:11px;}
+.w-row-label span:first-child{color:var(--muted);text-transform:uppercase;letter-spacing:1px;}
+.w-val{font-family:'JetBrains Mono',monospace;}
+input[type=range]{-webkit-appearance:none;width:100%;height:3px;background:var(--border2);border-radius:2px;outline:none;border:none;padding:0;}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:14px;height:14px;border-radius:50%;background:var(--l);cursor:pointer;}
+
+/* CALENDAR */
+.cal-nav{display:flex;align-items:center;gap:16px;margin-bottom:24px;}
+.cal-nav-btn{width:32px;height:32px;border-radius:8px;background:var(--surface);border:1px solid var(--border2);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:14px;color:var(--muted);transition:all .15s;}
+.cal-nav-btn:hover{color:var(--text);border-color:var(--muted);}
+.cal-month-label{font-family:'JetBrains Mono',monospace;font-size:15px;font-weight:500;min-width:140px;text-align:center;}
+.cal-legend{margin-left:auto;display:flex;gap:12px;align-items:center;flex-wrap:wrap;}
+.cal-legend-item{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--muted);}
+.cal-legend-dot{width:8px;height:8px;border-radius:50%;}
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;}
+.cal-day-header{text-align:center;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:1.5px;color:var(--muted);padding:8px 0;}
+.cal-cell{background:var(--surface);border:1px solid var(--border);border-radius:8px;min-height:88px;padding:8px;transition:border-color .15s;}
+.cal-cell.today{border-color:var(--muted2);}
+.cal-cell.today .cal-cell-num{color:var(--text);font-weight:700;}
+.cal-cell.other-month{opacity:.35;}
+.cal-cell.has-posts{background:var(--surface2);cursor:pointer;}
+.cal-cell.has-posts:hover{border-color:var(--border2);}
+.cal-cell-num{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--muted);margin-bottom:5px;}
+.cal-posts{display:flex;flex-direction:column;gap:3px;}
+.cal-post-pill{display:flex;align-items:center;gap:4px;border-radius:4px;padding:2px 6px;font-size:10px;line-height:1.3;}
+.cal-post-pill.pR{background:var(--r-dim);border-left:2px solid var(--r);color:var(--r);}
+.cal-post-pill.pL{background:var(--l-dim);border-left:2px solid var(--l);color:var(--l);}
+.cal-post-pill.pC{background:var(--c-dim);border-left:2px solid var(--c);color:var(--c);}
+.cal-post-pill.pH{background:var(--h-dim);border-left:2px solid var(--h);color:var(--h);}
+.cal-post-pill.pS{background:var(--s-dim);border-left:2px solid var(--s);color:var(--s);}
+.cal-post-code{font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;flex-shrink:0;}
+.cal-post-name{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:90px;}
+.cal-more{font-size:9px;color:var(--muted);font-family:'JetBrains Mono',monospace;margin-top:2px;}
+.cal-detail{display:none;position:fixed;z-index:500;background:var(--surface2);border:1px solid var(--border2);border-radius:10px;padding:16px;width:280px;box-shadow:0 16px 40px rgba(0,0,0,.6);animation:fadeUp .15s ease;}
+.cal-detail.open{display:block;}
+.cal-detail-date{font-size:11px;color:var(--muted);font-family:'JetBrains Mono',monospace;margin-bottom:10px;}
+.cal-detail-post{background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:10px 12px;margin-bottom:6px;}
+.cal-detail-header{display:flex;align-items:center;gap:8px;margin-bottom:4px;}
+.cal-detail-time{font-size:10px;color:var(--muted);font-family:'JetBrains Mono',monospace;}
+.cal-detail-caption{font-size:12px;color:var(--text);line-height:1.4;}
+.cal-detail-close{position:absolute;top:10px;right:10px;width:22px;height:22px;border-radius:4px;background:var(--surface);border:1px solid var(--border2);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:11px;color:var(--muted);}
+.cal-detail-close:hover{color:var(--text);}
+
+/* HOOK GRID */
+.hook-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:14px;}
+.hook-card{background:var(--surface);border:1px solid var(--border);border-radius:10px;overflow:hidden;cursor:pointer;transition:all .15s;}
+.hook-card:hover{border-color:var(--border2);transform:translateY(-2px);}
+.hook-thumb{width:100%;aspect-ratio:9/16;background:var(--surface2);display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden;}
+.hook-thumb img{width:100%;height:100%;object-fit:cover;}
+.hook-rank{position:absolute;top:8px;left:8px;background:rgba(0,0,0,.7);border-radius:4px;padding:2px 7px;font-size:10px;font-family:'JetBrains Mono',monospace;color:var(--h);}
+.hook-info{padding:10px 12px;}
+.hook-views{font-family:'JetBrains Mono',monospace;font-size:16px;font-weight:500;color:var(--h);margin-bottom:4px;}
+.hook-caption{font-size:11px;color:var(--muted);line-height:1.4;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
+.hook-note-preview{font-size:10px;color:var(--h);margin-top:6px;border-left:1px solid var(--h);padding-left:6px;line-height:1.4;}
+</style>
+</head>
+<body>
+<div class="shell">
+
+<!-- SIDEBAR -->
+<div class="sidebar">
+  <div class="sidebar-logo">
+    <div class="logo-mark">CT<span>RL</span></div>
+    <div class="logo-sub">Content System</div>
+  </div>
+  <nav class="nav">
+    <div class="nav-item active" data-tab="R" onclick="switchTab('R',this)">
+      <div class="nav-pip"></div><div class="nav-code">R</div>
+      <div class="nav-label">Reposts</div>
+      <div class="nav-badge" id="badge-R">0</div>
+    </div>
+    <div class="nav-divider"></div>
+    <div class="nav-item" data-tab="S" onclick="switchTab('S',this)">
+      <div class="nav-pip"></div><div class="nav-code">S</div>
+      <div class="nav-label">Standard</div>
+      <div class="nav-badge" id="badge-S">0</div>
+    </div>
+    <div class="nav-item" data-tab="L" onclick="switchTab('L',this)">
+      <div class="nav-pip"></div><div class="nav-code">L</div>
+      <div class="nav-label">Lead Magnet</div>
+      <div class="nav-badge" id="badge-L">0</div>
+    </div>
+    <div class="nav-item" data-tab="C" onclick="switchTab('C',this)">
+      <div class="nav-pip"></div><div class="nav-code">C</div>
+      <div class="nav-label">Connection</div>
+      <div class="nav-badge" id="badge-C">0</div>
+    </div>
+    <div class="nav-item" data-tab="H" onclick="switchTab('H',this)">
+      <div class="nav-pip"></div><div class="nav-code">H</div>
+      <div class="nav-label">Hook</div>
+      <div class="nav-badge" id="badge-H">0</div>
+    </div>
+    <div class="nav-divider"></div>
+    <div class="nav-item" data-tab="CAL" onclick="switchTab('CAL',this)">
+      <div class="nav-pip"></div><div class="nav-code" style="font-size:14px;">◫</div>
+      <div class="nav-label">Calendar</div>
+      <div class="nav-badge" id="badge-CAL">—</div>
+    </div>
+  </nav>
+  <div class="sidebar-footer">
+    <button class="publish-all-btn" onclick="publishAll()">⚡ Publish All</button>
+    <button class="creds-btn" onclick="openCreds()">⚙ Credentials & Settings</button>
+  </div>
+</div>
+
+<!-- MAIN -->
+<div class="main">
+  <div class="topbar">
+    <div>
+      <span class="topbar-title" id="topbar-title">R — Reposts</span>
+      <span class="topbar-sub" id="topbar-sub">Master leaderboard · all pillars</span>
+    </div>
+    <div class="topbar-right">
+      <span class="last-refresh" id="last-refresh">Not yet refreshed</span>
+      <button class="refresh-btn" onclick="refreshCurrent()">↻ Refresh</button>
+    </div>
+  </div>
+
+  <div class="content">
+
+    <!-- ═══ R — MASTER LEADERBOARD ═══ -->
+    <div class="tab-pane active" id="tab-R">
+      <div class="publish-bar">
+        <div class="publish-info">
+          <strong>R — Master Leaderboard</strong>
+          Post at <input class="pub-time-input" type="time" id="r-time" value="20:00"> GMT &nbsp;·&nbsp;
+          Stats saved · originals auto-removed after repost goes live
+        </div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+          <button class="btn btn-ghost btn-sm" onclick="fetchBufferAnalytics()">↻ Refresh from Buffer</button>
+          <label class="btn btn-ghost btn-sm" style="cursor:pointer;">
+            📥 Import CSV
+            <input type="file" id="csv-input" accept=".csv" style="display:none" onchange="importBufferCSV(this)">
+          </label>
+          <button class="btn btn-ghost btn-sm" onclick="openCreds()">⚙ Weights</button>
+          <button class="btn btn-r btn-sm" onclick="runRPublish()">Post Now →</button>
+        </div>
+      </div>
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:12px 16px;margin-bottom:20px;font-size:12px;color:var(--muted);line-height:1.8;">
+        <strong style="color:var(--text);display:block;margin-bottom:4px;">How it works</strong>
+        <span style="color:var(--r);">Live:</span> Click "Refresh from Buffer" — pulls your last 60 days of posts + stats directly. Auto-refreshes every 24h. &nbsp;·&nbsp;
+        <span style="color:var(--muted);">Manual fallback:</span> Buffer → Analyze → Export CSV → Import CSV above.
+      </div>
+      </div>
+      <div class="stats-row">
+        <div class="stat-card"><div class="stat-val" style="color:var(--r)" id="r-stat-total">—</div><div class="stat-label">Total posts</div></div>
+        <div class="stat-card"><div class="stat-val" style="color:var(--r)" id="r-stat-queued">—</div><div class="stat-label">Queued</div></div>
+        <div class="stat-card"><div class="stat-val" style="color:var(--r)" id="r-stat-top">—</div><div class="stat-label">Top score</div></div>
+        <div class="stat-card"><div class="stat-val" style="color:var(--r)" id="r-stat-avg">—</div><div class="stat-label">Avg views</div></div>
+      </div>
+      <div class="section-header">
+        <div class="filter-tabs">
+          <button class="filter-tab active f-all" onclick="setRFilter('ALL',this)">All</button>
+          <button class="filter-tab f-S" onclick="setRFilter('S',this)">S</button>
+          <button class="filter-tab f-L" onclick="setRFilter('L',this)">L</button>
+          <button class="filter-tab f-C" onclick="setRFilter('C',this)">C</button>
+          <button class="filter-tab f-H" onclick="setRFilter('H',this)">H</button>
+        </div>
+        <div class="section-actions">
+          <button class="btn btn-ghost btn-sm" onclick="autoSelectR()">Auto-select top 30</button>
+        </div>
+      </div>
+      <div id="r-status" style="display:none"></div>
+      <div class="progress-wrap" id="r-pw" style="display:none"><div class="progress-bar pb-r" id="r-pb" style="width:0%"></div></div>
+      <div class="table-wrap" id="r-table-wrap">
+        <div class="empty-state"><div class="empty-icon">▶</div><div class="empty-title">No data yet</div><div class="empty-sub">Click Analyse All to pull top performers across every pillar.</div></div>
+      </div>
+    </div>
+
+    <!-- ═══ S — STANDARD ═══ -->
+    <div class="tab-pane" id="tab-S">
+      <div class="publish-bar">
+        <div class="publish-info">
+          <strong>S — Standard</strong>
+          Post at <input class="pub-time-input" type="time" id="s-time" value="19:00"> GMT &nbsp;·&nbsp;
+          <span style="color:var(--s);font-size:11px;">1 per day · next available slot · feeds R</span>
+        </div>
+        <div style="display:flex;gap:8px;">
+          <button class="btn btn-ghost btn-sm" onclick="syncDriveS()">↻ Sync Drive</button>
+          <button class="btn btn-s btn-sm" onclick="scheduleS()">Schedule →</button>
+        </div>
+      </div>
+      <div style="background:var(--s-dim);border:1px solid rgba(232,121,249,.2);border-radius:8px;padding:12px 16px;margin-bottom:20px;font-size:12px;color:var(--muted);line-height:1.8;">
+        <strong style="color:var(--s);display:block;margin-bottom:4px;">Naming convention</strong>
+        Independent posts: <code style="color:var(--text);">S-001.mp4</code>, <code style="color:var(--text);">S-002.mp4</code> — scheduled next available day<br>
+        Variant sets: <code style="color:var(--text);">S-001A.mp4</code>, <code style="color:var(--text);">S-001B.mp4</code> — same number = variants, spaced 1 week apart
+      </div>
+      <div class="stats-row">
+        <div class="stat-card"><div class="stat-val" style="color:var(--s)" id="s-stat-total">—</div><div class="stat-label">Files in Drive</div></div>
+        <div class="stat-card"><div class="stat-val" style="color:var(--s)" id="s-stat-scheduled">—</div><div class="stat-label">Scheduled</div></div>
+        <div class="stat-card"><div class="stat-val" style="color:var(--s)" id="s-stat-variants">—</div><div class="stat-label">Variant sets</div></div>
+        <div class="stat-card"><div class="stat-val" style="color:var(--s)" id="s-stat-next">—</div><div class="stat-label">Next post date</div></div>
+      </div>
+      <div class="section-header"><div class="section-title">Schedule Queue</div></div>
+      <div id="s-status" style="display:none"></div>
+      <div class="progress-wrap" id="s-pw" style="display:none"><div class="progress-bar pb-s" id="s-pb" style="width:0%"></div></div>
+      <div id="s-queue-wrap"><div class="empty-state"><div class="empty-icon">📅</div><div class="empty-title">No files synced</div><div class="empty-sub">Add your S folder ID in credentials,<br>click Sync Drive to see your queue.</div></div></div>
+    </div>
+
+    <!-- ═══ L — LEAD MAGNET ═══ -->
+    <div class="tab-pane" id="tab-L">
+      <div class="publish-bar">
+        <div class="publish-info">
+          <strong>L — Lead Magnet</strong>
+          Post at <input class="pub-time-input" type="time" id="l-time" value="19:00"> GMT &nbsp;·&nbsp;
+          <span style="color:var(--l);font-size:11px;">Same sub-type: 1 week apart · different sub-types: next available day</span>
+        </div>
+        <div style="display:flex;gap:8px;">
+          <button class="btn btn-ghost btn-sm" onclick="syncDriveL()">↻ Sync Drive</button>
+          <button class="btn btn-l btn-sm" onclick="scheduleL()">Schedule →</button>
+        </div>
+      </div>
+      <div style="background:var(--l-dim);border:1px solid rgba(54,211,153,.2);border-radius:8px;padding:12px 16px;margin-bottom:20px;font-size:12px;color:var(--muted);line-height:1.8;">
+        <strong style="color:var(--l);display:block;margin-bottom:4px;">Sub-types & naming</strong>
+        <code style="color:var(--text);">L-Quiz-001.mp4</code> &nbsp;·&nbsp; <code style="color:var(--text);">L-Magnet-001.mp4</code> &nbsp;·&nbsp; <code style="color:var(--text);">L-Attract-001.mp4</code> &nbsp;·&nbsp; <code style="color:var(--text);">L-Regret-001.mp4</code><br>
+        Same sub-type spaced 7 days · different sub-types fill consecutive available days
+      </div>
+      <div class="stats-row">
+        <div class="stat-card"><div class="stat-val" style="color:var(--l)" id="l-stat-total">—</div><div class="stat-label">Files in Drive</div></div>
+        <div class="stat-card"><div class="stat-val" style="color:var(--l)" id="l-stat-scheduled">—</div><div class="stat-label">Scheduled</div></div>
+        <div class="stat-card"><div class="stat-val" style="color:var(--l)" id="l-stat-subtypes">4</div><div class="stat-label">Sub-types</div></div>
+        <div class="stat-card"><div class="stat-val" style="color:var(--l)" id="l-stat-next">—</div><div class="stat-label">Next post date</div></div>
+      </div>
+      <div class="section-header"><div class="section-title">Schedule Queue</div></div>
+      <div id="l-status" style="display:none"></div>
+      <div class="progress-wrap" id="l-pw" style="display:none"><div class="progress-bar pb-l" id="l-pb" style="width:0%"></div></div>
+      <div id="l-queue-wrap"><div class="empty-state"><div class="empty-icon">🧲</div><div class="empty-title">No files synced</div><div class="empty-sub">Add your L folder IDs in credentials,<br>click Sync Drive to see your queue.</div></div></div>
+    </div>
+
+    <!-- ═══ C — CONNECTION ═══ -->
+    <div class="tab-pane" id="tab-C">
+      <div class="publish-bar">
+        <div class="publish-info">
+          <strong>C — Connection</strong>
+          Post at <input class="pub-time-input" type="time" id="c-time" value="19:00"> GMT &nbsp;·&nbsp;
+          <span style="color:var(--c);font-size:11px;">1 per day max · next available slot</span>
+        </div>
+        <div style="display:flex;gap:8px;">
+          <button class="btn btn-ghost btn-sm" onclick="syncDriveC()">↻ Sync Drive</button>
+          <button class="btn btn-c btn-sm" onclick="scheduleC()">Schedule →</button>
+        </div>
+      </div>
+      <div style="background:var(--c-dim);border:1px solid rgba(123,132,255,.2);border-radius:8px;padding:12px 16px;margin-bottom:20px;font-size:12px;color:var(--muted);">
+        <strong style="color:var(--c);display:block;margin-bottom:4px;">Naming convention</strong>
+        <code style="color:var(--text);">C-001.mp4</code>, <code style="color:var(--text);">C-002.mp4</code> — scheduled to next available day with no C post
+      </div>
+      <div class="stats-row">
+        <div class="stat-card"><div class="stat-val" style="color:var(--c)" id="c-stat-total">—</div><div class="stat-label">Files in Drive</div></div>
+        <div class="stat-card"><div class="stat-val" style="color:var(--c)" id="c-stat-scheduled">—</div><div class="stat-label">Scheduled</div></div>
+        <div class="stat-card"><div class="stat-val" style="color:var(--c)" id="c-stat-top">—</div><div class="stat-label">Top score</div></div>
+        <div class="stat-card"><div class="stat-val" style="color:var(--c)" id="c-stat-next">—</div><div class="stat-label">Next post date</div></div>
+      </div>
+      <div class="section-header"><div class="section-title">Schedule Queue</div></div>
+      <div id="c-status" style="display:none"></div>
+      <div class="progress-wrap" id="c-pw" style="display:none"><div class="progress-bar pb-c" id="c-pb" style="width:0%"></div></div>
+      <div id="c-queue-wrap"><div class="empty-state"><div class="empty-icon">💬</div><div class="empty-title">No files synced</div><div class="empty-sub">Add your C folder ID in credentials,<br>click Sync Drive to see your queue.</div></div></div>
+    </div>
+
+    <!-- ═══ H — HOOK ═══ -->
+    <div class="tab-pane" id="tab-H">
+      <div class="publish-bar">
+        <div class="publish-info">
+          <strong>H — Hook</strong>
+          Post at <input class="pub-time-input" type="time" id="h-time" value="19:00"> GMT &nbsp;·&nbsp;
+          <span style="color:var(--h);font-size:11px;">1 per day max · next available slot · feeds R</span>
+        </div>
+        <div style="display:flex;gap:8px;">
+          <button class="btn btn-ghost btn-sm" onclick="syncDriveH()">↻ Sync Drive</button>
+          <button class="btn btn-h btn-sm" onclick="scheduleH()">Schedule →</button>
+        </div>
+      </div>
+      <div style="background:var(--h-dim);border:1px solid rgba(255,209,102,.2);border-radius:8px;padding:12px 16px;margin-bottom:20px;font-size:12px;color:var(--muted);">
+        <strong style="color:var(--h);display:block;margin-bottom:4px;">Naming convention</strong>
+        <code style="color:var(--text);">H-001.mp4</code>, <code style="color:var(--text);">H-002.mp4</code> — scheduled to next available day with no H post
+      </div>
+      <div class="stats-row">
+        <div class="stat-card"><div class="stat-val" style="color:var(--h)" id="h-stat-total">—</div><div class="stat-label">Files in Drive</div></div>
+        <div class="stat-card"><div class="stat-val" style="color:var(--h)" id="h-stat-scheduled">—</div><div class="stat-label">Scheduled</div></div>
+        <div class="stat-card"><div class="stat-val" style="color:var(--h)" id="h-stat-top">—</div><div class="stat-label">Top score</div></div>
+        <div class="stat-card"><div class="stat-val" style="color:var(--h)" id="h-stat-next">—</div><div class="stat-label">Next post date</div></div>
+      </div>
+      <div class="section-header"><div class="section-title">Schedule Queue</div><div class="section-actions"><span style="font-size:11px;color:var(--muted);">Click card to note hook</span></div></div>
+      <div id="h-status" style="display:none"></div>
+      <div class="progress-wrap" id="h-pw" style="display:none"><div class="progress-bar pb-h" id="h-pb" style="width:0%"></div></div>
+      <div id="h-queue-wrap"><div class="empty-state"><div class="empty-icon">🎣</div><div class="empty-title">No files synced</div><div class="empty-sub">Add your H folder ID in credentials,<br>click Sync Drive to see your queue.</div></div></div>
+    </div>
+
+    <!-- ═══ CALENDAR ═══ -->
+    <div class="tab-pane" id="tab-CAL">
+      <div class="cal-nav">
+        <div class="cal-nav-btn" onclick="calPrev()">←</div>
+        <div class="cal-month-label" id="cal-month-label">—</div>
+        <div class="cal-nav-btn" onclick="calNext()">→</div>
+        <button class="btn btn-ghost btn-sm" onclick="calToday()">Today</button>
+        <div class="cal-legend">
+          <div class="cal-legend-item"><div class="cal-legend-dot" style="background:var(--r)"></div>R</div>
+          <div class="cal-legend-item"><div class="cal-legend-dot" style="background:var(--s)"></div>S</div>
+          <div class="cal-legend-item"><div class="cal-legend-dot" style="background:var(--l)"></div>L</div>
+          <div class="cal-legend-item"><div class="cal-legend-dot" style="background:var(--c)"></div>C</div>
+          <div class="cal-legend-item"><div class="cal-legend-dot" style="background:var(--h)"></div>H</div>
+        </div>
+      </div>
+      <div class="cal-grid" id="cal-grid"></div>
+    </div>
+
+  </div>
+</div>
+</div>
+
+<!-- CAL DETAIL -->
+<div class="cal-detail" id="cal-detail">
+  <div class="cal-detail-close" onclick="closeCalDetail()">✕</div>
+  <div class="cal-detail-date" id="cal-detail-date"></div>
+  <div id="cal-detail-posts"></div>
+</div>
+
+<!-- CREDENTIALS MODAL -->
+<div class="modal-bg" id="creds-modal">
+  <div class="modal" style="width:540px;">
+    <div class="modal-title">⚙ Credentials & Settings</div>
+    <div style="font-size:11px;color:var(--muted);margin-bottom:20px;">Saved in your browser only.</div>
+
+    <div class="section-label">Instagram</div>
+    <div class="form-grid">
+      <div class="field"><label class="lbl">Access Token</label><input type="password" id="ci-token" placeholder="EAAxxxxxx..."><div class="hint">Needs: instagram_basic, manage_insights, content_publish</div></div>
+      <div class="field"><label class="lbl">User ID</label><input type="text" id="ci-uid" placeholder="17841400000000000"></div>
+    </div>
+
+    <div class="divider"></div>
+    <div class="section-label">Google Drive</div>
+    <div class="form-grid">
+      <div class="field"><label class="lbl">API Key</label><input type="password" id="ci-drive-key" placeholder="AIzaSyxxxxxx"><div class="hint"><a href="https://console.cloud.google.com" target="_blank">console.cloud.google.com</a> → Enable Drive API</div></div>
+      <div class="field"><label class="lbl">S Folder ID</label><input type="text" id="ci-s-folder" placeholder="Standard folder"></div>
+    </div>
+    <div class="form-grid">
+      <div class="field"><label class="lbl">L-Quiz Folder ID</label><input type="text" id="ci-lq-folder" placeholder="L-Quiz folder"></div>
+      <div class="field"><label class="lbl">L-Magnet Folder ID</label><input type="text" id="ci-lm-folder" placeholder="L-Magnet folder"></div>
+    </div>
+    <div class="form-grid">
+      <div class="field"><label class="lbl">L-Attract Folder ID</label><input type="text" id="ci-la-folder" placeholder="L-Attract folder"></div>
+      <div class="field"><label class="lbl">L-Regret Folder ID</label><input type="text" id="ci-lr-folder" placeholder="L-Regret folder"></div>
+    </div>
+    <div class="form-grid">
+      <div class="field"><label class="lbl">C Folder ID</label><input type="text" id="ci-c-folder" placeholder="Connection folder"></div>
+      <div class="field"><label class="lbl">H Folder ID</label><input type="text" id="ci-h-folder" placeholder="Hook folder"></div>
+    </div>
+
+    <div class="divider"></div>
+    <div class="section-label">Buffer</div>
+    <div class="form-grid">
+      <div class="field"><label class="lbl">Access Token</label><input type="password" id="ci-buffer" placeholder="Buffer API token"><div class="hint">Buffer Settings → Developer API</div></div>
+      <div class="field"><label class="lbl">First Comment (all posts)</label><textarea id="ci-comment" placeholder="Your hashtags or CTA..." style="min-height:60px;font-size:12px;"></textarea></div>
+    </div>
+    <div class="form-grid">
+      <div class="field" style="grid-column:1/-1"><label class="lbl">Cloudflare Worker URL</label><input type="text" id="ci-worker-url" placeholder="https://ctrl-buffer-proxy.yourname.workers.dev"><div class="hint">Your Cloudflare Worker that proxies Buffer API requests — handles CORS.</div></div>
+    </div>
+
+    <div class="divider"></div>
+    <div class="section-label">R — Scoring Weights <span style="color:var(--muted);font-size:10px;font-weight:400;letter-spacing:0;text-transform:none;">(used across all pillars in R leaderboard)</span></div>
+    <div id="r-weights-wrap"></div>
+
+    <div class="divider"></div>
+    <div class="section-label">L — Scoring Weights</div>
+    <div id="l-weights-wrap"></div>
+
+    <div class="divider"></div>
+
+    <!-- CONNECTION TEST RESULTS -->
+    <div id="test-results" style="display:none;flex-direction:column;gap:8px;margin-bottom:16px;"></div>
+
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeCreds()">Cancel</button>
+      <button class="btn btn-ghost" onclick="testConnections()" id="test-btn">🔌 Test connections</button>
+      <button class="btn btn-r" onclick="saveCreds()">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- CONFIRM PUBLISH MODAL -->
+<div class="modal-bg" id="confirm-modal">
+  <div class="modal" style="width:400px;">
+    <div class="modal-title">Confirm &amp; Publish</div>
+    <div id="confirm-body" style="font-size:13px;color:var(--muted);line-height:1.7;margin-bottom:12px;"></div>
+    <div style="background:rgba(255,69,96,.08);border:1px solid rgba(255,69,96,.2);border-radius:8px;padding:12px 14px;font-size:12px;color:var(--danger);margin-bottom:16px;">
+      ⚠ Original Instagram posts will be <strong>automatically deleted</strong> once each repost goes live in Buffer. Stats are saved first.
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeConfirm()">Cancel</button>
+      <button class="btn btn-r" id="confirm-go-btn">Publish & Delete Originals</button>
+    </div>
+  </div>
+</div>
+
+<!-- HOOK NOTE MODAL -->
+<div class="modal-bg" id="hook-modal">
+  <div class="modal" style="width:420px;">
+    <div class="modal-title" style="color:var(--h);">Note this hook</div>
+    <div id="hm-views" style="font-family:'JetBrains Mono',monospace;font-size:13px;color:var(--h);margin-bottom:12px;"></div>
+    <div class="field">
+      <label class="lbl">Your hook note</label>
+      <textarea id="hm-note" placeholder="e.g. Opens with pain not solution. First 3 words create pattern interrupt..." style="min-height:100px;"></textarea>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeHookModal()">Cancel</button>
+      <button class="btn btn-h" onclick="saveHookNote()">Save note</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════════════════════
+const DB = {
+  creds: JSON.parse(localStorage.getItem('ctrl_creds')||'{}'),
+  rData: JSON.parse(localStorage.getItem('ctrl_r_data')||'[]'),        // master leaderboard
+  schedules: JSON.parse(localStorage.getItem('ctrl_schedules')||'{}'), // {S:[],L:[],C:[],H:[]}
+  hookNotes: JSON.parse(localStorage.getItem('ctrl_hook_notes')||'{}'),
+  lastRefresh: JSON.parse(localStorage.getItem('ctrl_last_refresh')||'{}'),
+  rWeights: JSON.parse(localStorage.getItem('ctrl_r_weights')||'{"views":1,"saves":5,"shares":2,"comments":0,"reach":0}'),
+  lWeights: JSON.parse(localStorage.getItem('ctrl_l_weights')||'{"views":3,"saves":1,"shares":0,"comments":7,"reach":0}'),
+};
+let currentTab = 'R';
+let rFilter = 'ALL';
+let pendingHook = null;
+let pendingConfirm = null;
+
+function save(k,v){ localStorage.setItem('ctrl_'+k, JSON.stringify(v)); }
+function fmt(n){ if(!n)return'0'; if(n>=1e6)return(n/1e6).toFixed(1)+'M'; if(n>=1e3)return(n/1e3).toFixed(1)+'k'; return String(n); }
+function sleep(ms){ return new Promise(r=>setTimeout(r,ms)); }
+function today(){ const n=new Date(); return `${n.getFullYear()}-${String(n.getMonth()+1).padStart(2,'0')}-${String(n.getDate()).padStart(2,'0')}`; }
+function addDays(ds,n){ const d=new Date(ds+'T12:00:00'); d.setDate(d.getDate()+n); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; }
+function nowStr(){ return new Date().toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'}); }
+function setSt(id,msg,type,loading){
+  const e=document.getElementById(id);
+  e.style.display=msg?'flex':'none';
+  if(msg){e.className='status-bar '+type;e.innerHTML=(loading?'<div class="spinner"></div>':'')+`<span>${msg}</span>`;}
+}
+function setPr(id,pct){
+  const w=document.getElementById(id+'-pw'); if(!w)return;
+  w.style.display=pct>0&&pct<100?'block':'none';
+  document.getElementById(id+'-pb').style.width=pct+'%';
+}
+
+// ═══════════════════════════════════════════════════════
+// NAV
+// ═══════════════════════════════════════════════════════
+const TAB_META={
+  R:{title:'R — Reposts',sub:'Master leaderboard · all pillars'},
+  S:{title:'S — Standard',sub:'Daily posts · feeds R'},
+  L:{title:'L — Lead Magnet',sub:'4 sub-types · weekly spacing per type'},
+  C:{title:'C — Connection',sub:'1 per day · next available slot'},
+  H:{title:'H — Hook',sub:'1 per day · feeds R'},
+  CAL:{title:'Calendar',sub:'All scheduled posts across every pillar'},
+};
+
+function switchTab(tab,el){
+  document.querySelectorAll('.tab-pane').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  document.getElementById('tab-'+tab).classList.add('active');
+  el.classList.add('active');
+  currentTab=tab;
+  document.getElementById('topbar-title').textContent=TAB_META[tab].title;
+  document.getElementById('topbar-sub').textContent=TAB_META[tab].sub;
+  const t=DB.lastRefresh[tab];
+  document.getElementById('last-refresh').textContent=t?'Last refresh: '+t:'Not yet refreshed';
+  if(tab==='CAL') renderCalendar();
+}
+
+function refreshCurrent(){
+  if(currentTab==='R') fetchBufferAnalytics();
+  else if(currentTab==='S') syncDriveS();
+  else if(currentTab==='L') syncDriveL();
+  else if(currentTab==='C') syncDriveC();
+  else if(currentTab==='H') syncDriveH();
+  else if(currentTab==='CAL') renderCalendar();
+}
+
+function updateBadge(tab,n){ document.getElementById('badge-'+tab).textContent=n||'0'; }
+
+// ═══════════════════════════════════════════════════════
+// CREDENTIALS
+// ═══════════════════════════════════════════════════════
+function openCreds(){
+  const c=DB.creds;
+  const map={'ci-token':'ig_token','ci-uid':'ig_uid','ci-drive-key':'drive_key','ci-s-folder':'s_folder','ci-lq-folder':'lq_folder','ci-lm-folder':'lm_folder','ci-la-folder':'la_folder','ci-lr-folder':'lr_folder','ci-c-folder':'c_folder','ci-h-folder':'h_folder','ci-buffer':'buffer_token','ci-comment':'first_comment','ci-worker-url':'worker_url'};
+  Object.entries(map).forEach(([id,key])=>{ const el=document.getElementById(id); if(el) el.value=c[key]||''; });
+  renderWeights('r-weights-wrap', DB.rWeights, 'rw');
+  renderWeights('l-weights-wrap', DB.lWeights, 'lw');
+  document.getElementById('creds-modal').classList.add('open');
+}
+function closeCreds(){ document.getElementById('creds-modal').classList.remove('open'); }
+function saveCreds(){
+  DB.creds={
+    ig_token:document.getElementById('ci-token').value.trim(),
+    ig_uid:document.getElementById('ci-uid').value.trim(),
+    drive_key:document.getElementById('ci-drive-key').value.trim(),
+    s_folder:document.getElementById('ci-s-folder').value.trim(),
+    lq_folder:document.getElementById('ci-lq-folder').value.trim(),
+    lm_folder:document.getElementById('ci-lm-folder').value.trim(),
+    la_folder:document.getElementById('ci-la-folder').value.trim(),
+    lr_folder:document.getElementById('ci-lr-folder').value.trim(),
+    c_folder:document.getElementById('ci-c-folder').value.trim(),
+    h_folder:document.getElementById('ci-h-folder').value.trim(),
+    buffer_token:document.getElementById('ci-buffer').value.trim(),
+    first_comment:document.getElementById('ci-comment').value.trim(),
+    worker_url:document.getElementById('ci-worker-url').value.trim().replace(/\/$/,''),
+  };
+  ['views','saves','shares','comments','reach'].forEach(m=>{
+    const rw=document.getElementById('rw-'+m); if(rw) DB.rWeights[m]=parseInt(rw.value)||0;
+    const lw=document.getElementById('lw-'+m); if(lw) DB.lWeights[m]=parseInt(lw.value)||0;
+  });
+  save('creds',DB.creds); save('r_weights',DB.rWeights); save('l_weights',DB.lWeights);
+  closeCreds(); showToast('Credentials saved ✓');
+}
+async function testConnections(){
+  // Save first so credentials are fresh, then test
+  DB.creds={
+    ig_token:document.getElementById('ci-token').value.trim(),
+    ig_uid:document.getElementById('ci-uid').value.trim(),
+    drive_key:document.getElementById('ci-drive-key').value.trim(),
+    s_folder:document.getElementById('ci-s-folder').value.trim(),
+    lq_folder:document.getElementById('ci-lq-folder').value.trim(),
+    lm_folder:document.getElementById('ci-lm-folder').value.trim(),
+    la_folder:document.getElementById('ci-la-folder').value.trim(),
+    lr_folder:document.getElementById('ci-lr-folder').value.trim(),
+    c_folder:document.getElementById('ci-c-folder').value.trim(),
+    h_folder:document.getElementById('ci-h-folder').value.trim(),
+    buffer_token:document.getElementById('ci-buffer').value.trim(),
+    first_comment:document.getElementById('ci-comment').value.trim(),
+    worker_url:document.getElementById('ci-worker-url').value.trim().replace(/\/$/,''),
+  };
+  save('creds',DB.creds);
+
+  const btn=document.getElementById('test-btn');
+  btn.textContent='Testing...'; btn.disabled=true;
+
+  const driveKey=DB.creds.drive_key;
+  const bufferToken=DB.creds.buffer_token;
+  const folders={
+    'S':DB.creds.s_folder,
+    'L-Quiz':DB.creds.lq_folder,
+    'L-Magnet':DB.creds.lm_folder,
+    'L-Attract':DB.creds.la_folder,
+    'L-Regret':DB.creds.lr_folder,
+    'C':DB.creds.c_folder,
+    'H':DB.creds.h_folder,
+  };
+
+  const results=[];
+
+  // Buffer — test via Cloudflare Worker proxy
+  const workerUrl=DB.creds.worker_url;
+  if(!workerUrl){
+    results.push({label:'Buffer', ok:false, msg:'No Worker URL entered — add your Cloudflare Worker URL'});
+  } else if(!bufferToken){
+    results.push({label:'Buffer', ok:false, msg:'No token entered'});
+  } else {
+    try{
+      // Step 1: get org ID
+      const orgRes=await fetch(workerUrl,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:bufferToken,query:'query { account { organizations { id name } } }'})});
+      const orgData=await orgRes.json();
+      if(orgData.error) throw new Error(orgData.error);
+      const orgs=orgData.data?.account?.organizations||[];
+      if(!orgs.length) throw new Error('No organization found in Buffer');
+      const orgId=orgs[0].id;
+
+      // Step 2: get channels
+      const chanRes=await fetch(workerUrl,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:bufferToken,query:`query { channels(input: { organizationId: "${orgId}" }) { id name service } }`})});
+      const chanData=await chanRes.json();
+      if(chanData.error) throw new Error(chanData.error);
+      const channels=chanData.data?.channels||[];
+      const ig=channels.find(c=>c.service==='instagram'||c.service==='instagram_business');
+      if(ig) results.push({label:'Buffer', ok:true, msg:`Connected · Instagram: ${ig.name}`});
+      else if(channels.length) results.push({label:'Buffer', ok:true, msg:`Connected · ${channels.length} channel(s) — connect Instagram in Buffer`});
+      else results.push({label:'Buffer', ok:false, msg:'No channels found — connect Instagram in Buffer'});
+    }catch(e){ results.push({label:'Buffer', ok:false, msg:'Failed: '+e.message}); }
+  }
+
+  // Test Drive folders
+  if(driveKey){
+    for(const [name, folderId] of Object.entries(folders)){
+      if(!folderId){ results.push({label:`Drive · ${name}`, ok:false, msg:'No folder ID entered'}); continue; }
+      try{
+        const res=await fetch(`https://www.googleapis.com/drive/v3/files?q='${folderId}'+in+parents&pageSize=1&fields=files(id,name)&key=${driveKey}`);
+        const d=await res.json();
+        if(d.error) results.push({label:`Drive · ${name}`, ok:false, msg:d.error.message});
+        else results.push({label:`Drive · ${name}`, ok:true, msg:`Connected · ${d.files?.length??0} file(s) visible`});
+      }catch(e){ results.push({label:`Drive · ${name}`, ok:false, msg:'Request failed'}); }
+    }
+  } else {
+    results.push({label:'Google Drive', ok:false, msg:'No API key entered'});
+  }
+
+  // Render results
+  const wrap=document.getElementById('test-results');
+  wrap.style.display='flex';
+  wrap.innerHTML=results.map(r=>`
+    <div style="display:flex;align-items:center;gap:10px;background:${r.ok?'var(--l-dim)':'rgba(255,69,96,.08)'};border:1px solid ${r.ok?'rgba(54,211,153,.25)':'rgba(255,69,96,.2)'};border-radius:6px;padding:9px 12px;">
+      <span style="font-size:14px">${r.ok?'✓':'✕'}</span>
+      <div>
+        <div style="font-size:11px;font-weight:600;color:${r.ok?'var(--l)':'var(--danger)'};">${r.label}</div>
+        <div style="font-size:11px;color:var(--muted);margin-top:1px;">${r.msg}</div>
+      </div>
+    </div>`).join('');
+
+  btn.textContent='🔌 Test connections'; btn.disabled=false;
+}
+
+function renderWeights(containerId, weights, prefix){
+  const metrics=['views','saves','shares','comments','reach'];
+  document.getElementById(containerId).innerHTML=metrics.map(m=>`
+    <div class="w-row">
+      <div class="w-row-label"><span>${m}</span><span class="w-val" id="${prefix}-${m}-val" style="color:var(--l)">${weights[m]||0}</span></div>
+      <input type="range" id="${prefix}-${m}" min="0" max="10" value="${weights[m]||0}" step="1" oninput="document.getElementById('${prefix}-${m}-val').textContent=this.value">
+    </div>`).join('');
+}
+
+// ═══════════════════════════════════════════════════════
+// INSTAGRAM API HELPERS
+// ═══════════════════════════════════════════════════════
+async function igFetch(path,params={}){
+  const token=DB.creds.ig_token;
+  if(!token) throw new Error('No Instagram token — add in ⚙ Credentials');
+  const url=new URL('https://graph.facebook.com/v20.0'+path);
+  url.searchParams.set('access_token',token);
+  Object.entries(params).forEach(([k,v])=>url.searchParams.set(k,v));
+  const res=await fetch(url.toString());
+  const d=await res.json();
+  if(d.error) throw new Error(d.error.message);
+  return d;
+}
+async function getInsights(id,metrics){
+  try{ const d=await igFetch('/'+id+'/insights',{metric:metrics.join(',')}); const o={}; (d.data||[]).forEach(x=>{o[x.name]=x.values?.[0]?.value??x.value??0;}); return o; }catch(e){ return {}; }
+}
+async function getComments(id){ try{ const d=await igFetch('/'+id,{fields:'comments_count'}); return d.comments_count||0; }catch(e){ return 0; } }
+function calcScore(v,w){ const wt=w||DB.rWeights; return (v.views||0)*wt.views+(v.saves||0)*wt.saves+(v.shares||0)*wt.shares+(v.comments||0)*wt.comments+(v.reach||0)*wt.reach; }
+
+// ═══════════════════════════════════════════════════════
+// GOOGLE DRIVE HELPERS
+// ═══════════════════════════════════════════════════════
+async function listDriveFiles(folderId){
+  if(!folderId||!DB.creds.drive_key) return [];
+  try{
+    const url=`https://www.googleapis.com/drive/v3/files?q='${folderId}'+in+parents+and+mimeType+contains+'video'&fields=files(id,name,size,webContentLink)&orderBy=name&key=${DB.creds.drive_key}`;
+    const res=await fetch(url);
+    const d=await res.json();
+    return d.files||[];
+  }catch(e){ return []; }
+}
+function driveDownloadUrl(fileId){ return `https://drive.google.com/uc?export=download&id=${fileId}`; }
+
+// ═══════════════════════════════════════════════════════
+// SCHEDULING ENGINE
+// ═══════════════════════════════════════════════════════
+
+// Get all currently scheduled dates for a pillar
+function getScheduledDates(pillar){
+  return (DB.schedules[pillar]||[]).map(x=>x.date).filter(Boolean);
+}
+
+// Get next available date where no post of this pillar exists
+function nextAvailable(pillar, afterDate){
+  const used=new Set(getScheduledDates(pillar));
+  let d=afterDate||addDays(today(),1);
+  let safety=0;
+  while(used.has(d)&&safety<365){ d=addDays(d,1); safety++; }
+  return d;
+}
+
+// SCHEDULE S
+// S-001 = independent, next available day
+// S-001A = variant set, variants 7 days apart
+function buildSSchedule(files){
+  const schedule=[];
+  const usedDates=new Set(getScheduledDates('S'));
+  const alreadySched=new Set((DB.schedules.S||[]).map(x=>x.name));
+
+  const independent=[], variants={};
+  files.forEach(f=>{
+    if(alreadySched.has(f.name)) return;
+    const base=f.name.replace(/\.mp4$/i,'');
+    // Accept S-1, S-01, S-001 etc with optional letter suffix
+    const varMatch=base.match(/^S-(\d+)([A-Za-z])$/i);
+    const indMatch=base.match(/^S-(\d+)$/i);
+    if(varMatch){
+      const key='S-'+parseInt(varMatch[1]);
+      if(!variants[key]) variants[key]=[];
+      variants[key].push({...f, num:parseInt(varMatch[1]), varLetter:varMatch[2].toUpperCase()});
+    } else if(indMatch){
+      independent.push({...f, num:parseInt(indMatch[1])});
+    }
+  });
+
+  // Sort numerically so S-2 comes before S-10
+  independent.sort((a,b)=>a.num-b.num);
+  independent.forEach(f=>{
+    let d=addDays(today(),1);
+    while(usedDates.has(d)) d=addDays(d,1);
+    schedule.push({name:f.name,fileId:f.id,date:d,pillar:'S',note:''});
+    usedDates.add(d);
+  });
+
+  Object.entries(variants).forEach(([key,group])=>{
+    group.sort((a,b)=>a.varLetter.localeCompare(b.varLetter));
+    let d=addDays(today(),1);
+    while(usedDates.has(d)) d=addDays(d,1);
+    group.forEach((f,i)=>{
+      const slotDate=i===0?d:addDays(d,i*7);
+      schedule.push({name:f.name,fileId:f.id,date:slotDate,pillar:'S',note:`Variant set ${key}`});
+      usedDates.add(slotDate);
+    });
+  });
+
+  return schedule.sort((a,b)=>a.date.localeCompare(b.date));
+}
+
+// SCHEDULE L
+// L-Quiz-001 = sub-type Quiz, same sub-type 7 days apart, different sub-types fill consecutive days
+function buildLSchedule(files){
+  const schedule=[];
+  const usedDates=new Set(getScheduledDates('L'));
+  const alreadySched=new Set((DB.schedules.L||[]).map(x=>x.name));
+  const lastBySubtype={}; // track last scheduled date per subtype
+
+  // Pre-populate lastBySubtype from existing schedule
+  (DB.schedules.L||[]).forEach(x=>{
+    const m=x.name.match(/^L-(Quiz|Magnet|Attract|Regret)-/i);
+    if(m){ const st=m[1]; if(!lastBySubtype[st]||x.date>lastBySubtype[st]) lastBySubtype[st]=x.date; }
+  });
+
+  // Group by subtype
+  const bySubtype={};
+  files.forEach(f=>{
+    if(alreadySched.has(f.name)) return;
+    // Accept L-Quiz-1, L-Quiz-01, L-Quiz-001 etc
+    const m=f.name.replace(/\.mp4$/i,'').match(/^L-(Quiz|Magnet|Attract|Regret)-(\d+)$/i);
+    if(!m) return;
+    const st=m[1].charAt(0).toUpperCase()+m[1].slice(1).toLowerCase();
+    if(!bySubtype[st]) bySubtype[st]=[];
+    bySubtype[st].push({...f, num:parseInt(m[2])});
+  });
+
+  // For each subtype, schedule with 7-day minimum gap within that type
+  // But find the earliest available day considering cross-subtype usage
+  Object.entries(bySubtype).forEach(([st,stFiles])=>{
+    stFiles.sort((a,b)=>a.num-b.num);
+    stFiles.forEach(f=>{
+      // Must be at least 7 days after last of same subtype
+      const lastSame=lastBySubtype[st];
+      let earliest=lastSame?addDays(lastSame,7):addDays(today(),1);
+      // But also must not clash with another L post that day
+      while(usedDates.has(earliest)) earliest=addDays(earliest,1);
+      schedule.push({name:f.name,fileId:f.id,date:earliest,pillar:'L',note:st});
+      usedDates.add(earliest);
+      lastBySubtype[st]=earliest;
+    });
+  });
+
+  return schedule.sort((a,b)=>a.date.localeCompare(b.date));
+}
+
+// SCHEDULE C & H — simple: next available day with no C/H post
+function buildSimpleSchedule(files, pillar){
+  const schedule=[];
+  const usedDates=new Set(getScheduledDates(pillar));
+  const alreadySched=new Set((DB.schedules[pillar]||[]).map(x=>x.name));
+  // Sort numerically — accepts C-1, C-01, H-1, H-001 etc
+  const sorted=[...files]
+    .filter(f=>!alreadySched.has(f.name))
+    .map(f=>({ ...f, num: parseInt(f.name.replace(/\.mp4$/i,'').match(/\d+/)?.[0]||'0') }))
+    .sort((a,b)=>a.num-b.num);
+  sorted.forEach(f=>{
+    let d=addDays(today(),1);
+    while(usedDates.has(d)) d=addDays(d,1);
+    schedule.push({name:f.name,fileId:f.id,date:d,pillar,note:''});
+    usedDates.add(d);
+  });
+  return schedule.sort((a,b)=>a.date.localeCompare(b.date));
+}
+
+// ═══════════════════════════════════════════════════════
+// RENDER QUEUE
+// ═══════════════════════════════════════════════════════
+function renderQueue(wrapperId, items, pillar, color){
+  const wrap=document.getElementById(wrapperId);
+  if(!items.length){ wrap.innerHTML=`<div class="empty-state"><div class="empty-icon">✓</div><div class="empty-title">Queue empty</div><div class="empty-sub">No new files found in Drive to schedule.</div></div>`; return; }
+  wrap.innerHTML=`<div class="queue-list">${items.map((item,i)=>`
+    <div class="queue-item">
+      <div class="pillar-badge ${pillar}">${pillar}</div>
+      <div>
+        <div class="queue-filename">${item.name}</div>
+        ${item.note?`<div class="queue-note">${item.note}</div>`:''}
+      </div>
+      <div class="queue-sched">${item.date}</div>
+      <div style="font-size:10px;color:var(--muted);">${document.getElementById(pillar.toLowerCase()+'-time')?.value||'19:00'} GMT</div>
+      <div class="icon-btn danger" onclick="removeQueueItem('${pillar}',${i})" data-tip="Remove">✕</div>
+    </div>`).join('')}
+  </div>`;
+}
+
+function removeQueueItem(pillar,idx){
+  if(!DB.schedules[pillar]) return;
+  DB.schedules[pillar].splice(idx,1);
+  save('schedules',DB.schedules);
+  refreshPillarUI(pillar);
+  showToast('Removed from queue');
+}
+
+function refreshPillarUI(pillar){
+  const items=DB.schedules[pillar]||[];
+  if(pillar==='S'){ renderQueue('s-queue-wrap',items,'S','var(--s)'); updateSStats(items); }
+  else if(pillar==='L'){ renderQueue('l-queue-wrap',items,'L','var(--l)'); updateLStats(items); }
+  else if(pillar==='C'){ renderQueue('c-queue-wrap',items,'C','var(--c)'); updateCStats(items); }
+  else if(pillar==='H'){ renderQueue('h-queue-wrap',items,'H','var(--h)'); updateHStats(items); }
+  updateBadge(pillar,items.length);
+  if(currentTab==='CAL') renderCalendar();
+}
+
+// ═══════════════════════════════════════════════════════
+// SYNC DRIVE FUNCTIONS
+// ═══════════════════════════════════════════════════════
+async function syncDrive(pillar, folderIds, buildFn, statusId, progressId){
+  if(!DB.creds.drive_key){ setSt(statusId,'⚠ Add Google Drive API key in credentials.','error'); return; }
+  setSt(statusId,'Scanning Drive folder...','info',true); setPr(progressId,20);
+  try{
+    let allFiles=[];
+    for(const fid of folderIds){
+      if(fid){ const f=await listDriveFiles(fid); allFiles=[...allFiles,...f]; }
+    }
+    setPr(progressId,70);
+    const newItems=buildFn(allFiles);
+    if(!DB.schedules[pillar]) DB.schedules[pillar]=[];
+    DB.schedules[pillar]=[...DB.schedules[pillar],...newItems];
+    save('schedules',DB.schedules);
+    DB.lastRefresh[pillar]=today()+' '+nowStr(); save('last_refresh',DB.lastRefresh);
+    setPr(progressId,100); setSt(statusId,'','');
+    refreshPillarUI(pillar);
+    showToast(`${newItems.length} new file${newItems.length!==1?'s':''} queued for ${pillar}`);
+  }catch(e){ setSt(statusId,'Error: '+e.message,'error'); }
+}
+
+function syncDriveS(){ syncDrive('S',[DB.creds.s_folder],buildSSchedule,'s-status','s'); }
+function syncDriveL(){ syncDrive('L',[DB.creds.lq_folder,DB.creds.lm_folder,DB.creds.la_folder,DB.creds.lr_folder],buildLSchedule,'l-status','l'); }
+function syncDriveC(){ syncDrive('C',[DB.creds.c_folder],(f)=>buildSimpleSchedule(f,'C'),'c-status','c'); }
+function syncDriveH(){ syncDrive('H',[DB.creds.h_folder],(f)=>buildSimpleSchedule(f,'H'),'h-status','h'); }
+
+// Schedule buttons just confirm and push to Buffer
+function scheduleS(){ pushToBuffer('S'); }
+function scheduleL(){ pushToBuffer('L'); }
+function scheduleC(){ pushToBuffer('C'); }
+function scheduleH(){ pushToBuffer('H'); }
+
+// ═══════════════════════════════════════════════════════
+// STATS UPDATERS
+// ═══════════════════════════════════════════════════════
+function updateSStats(items){
+  document.getElementById('s-stat-total').textContent=items.length;
+  document.getElementById('s-stat-scheduled').textContent=items.length;
+  const variants=new Set(items.filter(x=>x.note).map(x=>x.note)).size;
+  document.getElementById('s-stat-variants').textContent=variants;
+  document.getElementById('s-stat-next').textContent=items[0]?.date||'—';
+}
+function updateLStats(items){
+  document.getElementById('l-stat-total').textContent=items.length;
+  document.getElementById('l-stat-scheduled').textContent=items.length;
+  document.getElementById('l-stat-next').textContent=items[0]?.date||'—';
+}
+function updateCStats(items){
+  document.getElementById('c-stat-total').textContent=items.length;
+  document.getElementById('c-stat-scheduled').textContent=items.length;
+  document.getElementById('c-stat-next').textContent=items[0]?.date||'—';
+}
+function updateHStats(items){
+  document.getElementById('h-stat-total').textContent=items.length;
+  document.getElementById('h-stat-scheduled').textContent=items.length;
+  document.getElementById('h-stat-next').textContent=items[0]?.date||'—';
+}
+
+// ═══════════════════════════════════════════════════════
+// R — MASTER LEADERBOARD
+// ═══════════════════════════════════════════════════════
+function setRFilter(f,btn){
+  rFilter=f;
+  document.querySelectorAll('.filter-tab').forEach(t=>t.classList.remove('active'));
+  btn.classList.add('active');
+  renderRTable();
+}
+
+async function fetchRData(){
+  if(!DB.creds.ig_token||!DB.creds.ig_uid){ setSt('r-status','⚠ Add Instagram credentials first.','error'); return; }
+  setSt('r-status','Pulling posts from all pillars...','info',true); setPr('r',5);
+  try{
+    const since=Math.floor((Date.now()-60*86400000)/1000);
+    const res=await igFetch(`/${DB.creds.ig_uid}/media`,{fields:'id,caption,media_type,timestamp,thumbnail_url,permalink',limit:'100'});
+    const reels=(res.data||[]).filter(m=>m.media_type==='VIDEO'&&new Date(m.timestamp).getTime()/1000>=since);
+    setSt('r-status',`Enriching ${reels.length} posts...`,'info',true); setPr('r',20);
+
+    const enriched=[];
+    for(let i=0;i<reels.length;i++){
+      setPr('r',20+Math.floor(i/reels.length*70));
+      const m=reels[i];
+      const ins=await getInsights(m.id,['plays','saved','reach','shares']);
+      const comments=await getComments(m.id);
+      const views=ins.plays||0,saves=ins.saved||0,shares=ins.shares||0,reach=ins.reach||0;
+      // Determine pillar from schedules
+      const pillar=detectPillar(m);
+      const score=calcScore({views,saves,shares,comments,reach},DB.rWeights);
+      enriched.push({...m,views,saves,shares,comments,reach,score,pillar,queued:false,scheduled_date:null});
+    }
+
+    DB.rData=enriched.sort((a,b)=>b.score-a.score);
+    save('r_data',DB.rData);
+    DB.lastRefresh.R=today()+' '+nowStr(); save('last_refresh',DB.lastRefresh);
+    setPr('r',100); setSt('r-status','','');
+    renderRTable(); updateRStats();
+    updateBadge('R',DB.rData.filter(v=>v.queued).length);
+  }catch(e){ setSt('r-status','Error: '+e.message,'error'); }
+}
+
+// Detect which pillar a post belongs to by cross-referencing schedules
+function detectPillar(post){
+  const ts=post.timestamp?.slice(0,10);
+  for(const pillar of ['S','L','C','H']){
+    const match=(DB.schedules[pillar]||[]).find(x=>x.date===ts);
+    if(match) return pillar;
+  }
+  return '?';
+}
+
+function renderRTable(){
+  const wrap=document.getElementById('r-table-wrap');
+  let data=DB.rData;
+  if(rFilter!=='ALL') data=data.filter(v=>v.pillar===rFilter);
+  if(!data.length){
+    wrap.innerHTML=`<div class="empty-state"><div class="empty-icon">▶</div><div class="empty-title">${DB.rData.length?'No posts match this filter':'No data yet'}</div><div class="empty-sub">${DB.rData.length?'Try a different pillar filter':'Click Analyse All to pull top performers.'}</div></div>`;
+    return;
+  }
+  wrap.innerHTML=`<table class="dash-table">
+    <thead><tr><th>#</th><th>Pillar</th><th>Video</th><th>Views</th><th>Saves</th><th>Score</th><th>Scheduled</th><th>Status</th><th style="text-align:right">Actions</th></tr></thead>
+    <tbody>${data.slice(0,60).map((v,i)=>`<tr>
+      <td style="color:var(--muted);font-family:'JetBrains Mono',monospace;font-size:11px;">${i+1}</td>
+      <td><div class="pillar-badge ${v.pillar||'?'}">${v.pillar||'?'}</div></td>
+      <td><div class="thumb-cell">
+        <div class="thumb">${v.thumbnail_url?`<img src="${v.thumbnail_url}" loading="lazy">`:'▶'}</div>
+        <div><div class="caption-text">${(v.caption||'No caption').replace(/[<>]/g,'').slice(0,45)}</div>
+        <div class="caption-date">${v.timestamp?.slice(0,10)||''}</div></div>
+      </div></td>
+      <td style="font-family:'JetBrains Mono',monospace;font-size:12px;">${fmt(v.views)}</td>
+      <td style="font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--l);">${fmt(v.saves)}</td>
+      <td><span class="score-pill" style="color:var(--r)">${fmt(v.score)}</span></td>
+      <td><span class="sched-date ${v.scheduled_date?'set':''}">${v.scheduled_date||'—'}</span></td>
+      <td><span class="status-chip ${v.queued?'queued':'pending'}">${v.queued?'Queued':'Pending'}</span></td>
+      <td><div class="action-cell">
+        <div class="icon-btn" style="${v.queued?'color:var(--r);border-color:var(--r);':''}" onclick="toggleRQueue('${v.id}')">${v.queued?'✕':'+'}</div>
+        <a href="${v.permalink||'#'}" target="_blank"><div class="icon-btn">↗</div></a>
+      </div></td>
+    </tr>`).join('')}</tbody></table>`;
+}
+
+function toggleRQueue(id){
+  const v=DB.rData.find(x=>x.id===id); if(!v) return;
+  v.queued=!v.queued;
+  if(v.queued&&!v.scheduled_date){
+    const used=new Set(DB.rData.filter(x=>x.queued&&x.scheduled_date).map(x=>x.scheduled_date));
+    let d=addDays(today(),1);
+    let safety=0;
+    while(used.has(d)&&safety<365){d=addDays(d,1);safety++;}
+    v.scheduled_date=d;
+  }
+  if(!v.queued) v.scheduled_date=null;
+  save('r_data',DB.rData); renderRTable(); updateRStats();
+  updateBadge('R',DB.rData.filter(x=>x.queued).length);
+}
+
+function autoSelectR(){
+  const sorted=[...DB.rData].sort((a,b)=>b.score-a.score);
+  const start=addDays(today(),1);
+  sorted.forEach((v,i)=>{
+    v.queued=i<30;
+    if(v.queued){ v.scheduled_date=addDays(start,i); }
+    else{ v.queued=false; v.scheduled_date=null; }
+  });
+  save('r_data',DB.rData); renderRTable(); updateRStats();
+  updateBadge('R',DB.rData.filter(x=>x.queued).length);
+  showToast('Top 30 selected ✓');
+}
+
+function updateRStats(){
+  document.getElementById('r-stat-total').textContent=fmt(DB.rData.length);
+  document.getElementById('r-stat-queued').textContent=DB.rData.filter(v=>v.queued).length;
+  document.getElementById('r-stat-top').textContent=fmt(DB.rData[0]?.score||0);
+  const avg=DB.rData.length?Math.round(DB.rData.reduce((a,b)=>a+(b.views||0),0)/DB.rData.length):0;
+  document.getElementById('r-stat-avg').textContent=fmt(avg);
+}
+
+async function runRPublish(){
+  const queued=DB.rData.filter(v=>v.queued);
+  if(!queued.length){ showToast('No posts queued in R.'); return; }
+  // Show confirm modal
+  document.getElementById('confirm-body').innerHTML=
+    `You are about to push <strong>${queued.length} posts</strong> to Buffer across the following pillars:<br><br>`+
+    ['S','L','C','H'].map(p=>{const n=queued.filter(v=>v.pillar===p).length; return n?`<strong>${p}</strong>: ${n} post${n>1?'s':''}`:'';}).filter(Boolean).join(' &nbsp;·&nbsp; ')+
+    `<br><br>Each original will be deleted from Instagram immediately after its repost goes live.`;
+  document.getElementById('confirm-go-btn').onclick=()=>{ closeConfirm(); executeRPublish(queued); };
+  document.getElementById('confirm-modal').classList.add('open');
+}
+
+function closeConfirm(){ document.getElementById('confirm-modal').classList.remove('open'); }
+
+async function executeRPublish(queued){
+  if(!DB.creds.buffer_token){ showToast('Add Buffer token in credentials.'); return; }
+  setSt('r-status',`Pushing ${queued.length} posts to Buffer...`,'info',true);
+
+  // Get Instagram channel ID first
+  const channelId = await getBufferChannelId();
+  if(!channelId){ setSt('r-status','Could not find Instagram channel in Buffer — is Instagram connected?','error'); return; }
+
+  let done=0;
+  for(const v of queued){
+    try{
+      const schedEntry=['S','L','C','H'].flatMap(p=>DB.schedules[p]||[]).find(x=>x.date===v.scheduled_date);
+      const videoUrl=schedEntry?.fileId?driveDownloadUrl(schedEntry.fileId):null;
+      const time=document.getElementById('r-time')?.value||'19:00';
+      const dueAt=new Date(`${v.scheduled_date||today()}T${time}:00Z`).toISOString();
+      await bufferGraphQL(DB.creds.buffer_token, buildCreatePostMutation(channelId, v.caption||'', dueAt, videoUrl));
+      done++;
+    }catch(e){ console.warn('Buffer post failed:',e.message); }
+    await sleep(200);
+  }
+  setSt('r-status',`${done} of ${queued.length} queued in Buffer ✓`,'success');
+  showToast(`${done} posts pushed to Buffer ✓`);
+}
+
+async function publishAll(){
+  await runRPublish();
+}
+
+async function pushToBuffer(pillar){
+  const items=DB.schedules[pillar]||[];
+  if(!items.length){ showToast(`No ${pillar} posts in queue.`); return; }
+  if(!DB.creds.buffer_token){ showToast('Add Buffer token in credentials.'); return; }
+  if(!DB.creds.worker_url){ showToast('Add Cloudflare Worker URL in credentials.'); return; }
+
+  setSt(pillar.toLowerCase()+'-status','Getting Buffer channel...','info',true);
+  let channelId;
+  try{ channelId=await getBufferChannelId(); }
+  catch(e){ setSt(pillar.toLowerCase()+'-status','Buffer error: '+e.message,'error'); return; }
+
+  const time=document.getElementById(pillar.toLowerCase()+'-time')?.value||'19:00';
+  setSt(pillar.toLowerCase()+'-status',`Pushing ${items.length} posts to Buffer...`,'info',true);
+  let done=0; const errors=[];
+  for(const item of items){
+    try{
+      const videoUrl=item.fileId?driveDownloadUrl(item.fileId):null;
+      const dueAt=new Date(`${item.date}T${time}:00Z`).toISOString();
+      const result=await bufferGraphQL(DB.creds.buffer_token, buildCreatePostMutation(channelId, item.caption||item.name||'', dueAt, videoUrl));
+      // Check for MutationError in response data
+      const payload=result.data?.createPost;
+      if(payload?.message) errors.push(payload.message);
+      else done++;
+    }catch(e){ errors.push(e.message); }
+    await sleep(200);
+  }
+  if(errors.length){
+    setSt(pillar.toLowerCase()+'-status',`${done} pushed · Error: ${errors[0]}`,'error');
+    showToast(`${done} pushed, ${errors.length} failed: ${errors[0]}`);
+  } else {
+    setSt(pillar.toLowerCase()+'-status',`${done} of ${items.length} pushed to Buffer ✓`,'success');
+    showToast(`${done} ${pillar} posts queued in Buffer ✓`);
+  }
+}
+
+// ── Buffer GraphQL helpers ─────────────────────────────
+async function bufferGraphQL(token, query){
+  const workerUrl=DB.creds.worker_url;
+  if(!workerUrl) throw new Error('Add your Cloudflare Worker URL in credentials.');
+  const res=await fetch(workerUrl,{
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({token, query})
+  });
+  if(!res.ok) throw new Error(`Worker error: ${res.status}`);
+  const d=await res.json();
+  if(d.error) throw new Error(d.error);
+  if(d.errors?.length) throw new Error(d.errors[0].message);
+  return d;
+}
+
+async function getBufferChannelId(){
+  if(DB._bufferChannelId) return DB._bufferChannelId;
+  try{
+    // Step 1: get organization ID
+    const orgData=await bufferGraphQL(DB.creds.buffer_token,`query { account { organizations { id name } } }`);
+    const orgs=orgData.data?.account?.organizations||[];
+    if(!orgs.length) throw new Error('No organization found in Buffer account.');
+    const orgId=orgs[0].id;
+
+    // Step 2: get channels for that org
+    const chanData=await bufferGraphQL(DB.creds.buffer_token,`query { channels(input: { organizationId: "${orgId}" }) { id name service } }`);
+    const channels=chanData.data?.channels||[];
+    const ig=channels.find(c=>c.service==='instagram'||c.service==='instagram_business');
+    if(ig){ DB._bufferChannelId=ig.id; return ig.id; }
+    throw new Error('No Instagram channel found. Connect Instagram in Buffer first.');
+  }catch(e){ console.warn('Buffer channel fetch failed:',e.message); throw e; }
+}
+
+function buildCreatePostMutation(channelId, text, dueAt, videoUrl){
+  // Send text-only post for now — video URL attachment via API is being confirmed
+  // Buffer will show in queue and you can attach the video manually if needed
+  return `mutation {
+    createPost(input: {
+      text: ${JSON.stringify(text||'')},
+      channelId: "${channelId}",
+      schedulingType: automatic,
+      mode: customScheduled,
+      dueAt: "${dueAt}"
+    }) {
+      ... on PostActionSuccess { post { id dueAt text } }
+      ... on MutationError { message type }
+    }
+  }`;
+}
+
+// ═══════════════════════════════════════════════════════
+// BUFFER CSV IMPORT
+
+// ═══════════════════════════════════════════════════════
+// BUFFER ANALYTICS AUTO-REFRESH
+// ═══════════════════════════════════════════════════════
+async function fetchBufferAnalytics(silent=false){
+  if(!DB.creds.buffer_token){
+    if(!silent) setSt('r-status','⚠ Add Buffer token in credentials.','error');
+    return;
+  }
+  if(!silent) setSt('r-status','Fetching analytics from Buffer...','info',true);
+  try{
+    // Fetch sent posts via new GraphQL API
+    const channelId=await getBufferChannelId();
+    if(!channelId) throw new Error('No Instagram channel found in Buffer.');
+
+    const d=await bufferGraphQL(DB.creds.buffer_token,`query {
+      sentPosts(channelId:"${channelId}", limit:100) {
+        edges { node {
+          id text dueAt
+          statistics { impressions reach videoViews saves shares comments }
+        }}
+      }
+    }`);
+
+    const since=Date.now()-60*86400000;
+    const posts=(d.data?.sentPosts?.edges||[])
+      .map(e=>e.node)
+      .filter(p=>new Date(p.dueAt).getTime()>since);
+
+    if(!posts.length){
+      if(!silent) setSt('r-status','No posts found in Buffer for last 60 days.','error');
+      return;
+    }
+
+    const newPosts=posts.map(p=>{
+      const stats=p.statistics||{};
+      const views=stats.videoViews||stats.impressions||stats.reach||0;
+      const saves=stats.saves||0;
+      const shares=stats.shares||0;
+      const comments=stats.comments||0;
+      const score=calcScore({views,saves,shares,comments,reach:stats.reach||0},DB.rWeights);
+      const dateStr=(p.dueAt||'').slice(0,10);
+      let pillar='?';
+      for(const pl of ['S','L','C','H']){ if((DB.schedules[pl]||[]).find(x=>x.date===dateStr)){pillar=pl;break;} }
+      return {id:'buf_'+p.id,caption:p.text||'',views,saves,shares,comments,reach:stats.reach||0,score,pillar,timestamp:dateStr,permalink:'',thumbnail_url:'',queued:false,scheduled_date:null,source:'buffer_api'};
+    });
+
+    const kept=DB.rData.filter(v=>v.source!=='buffer_api');
+    DB.rData=[...kept,...newPosts].sort((a,b)=>b.score-a.score);
+    save('r_data',DB.rData);
+    DB.lastRefresh.R=today()+' '+nowStr(); save('last_refresh',DB.lastRefresh);
+    renderRTable(); updateRStats();
+    updateBadge('R',DB.rData.filter(v=>v.queued).length);
+    localStorage.setItem('ctrl_next_refresh',Date.now()+24*60*60*1000);
+    if(!silent) setSt('r-status',`${newPosts.length} posts loaded from Buffer ✓`,'success');
+    if(!silent) showToast(`R leaderboard updated — ${newPosts.length} posts ✓`);
+  }catch(err){
+    if(!silent) setSt('r-status','Buffer error: '+err.message,'error');
+  }
+}
+
+function checkAutoRefresh(){
+  const next=parseInt(localStorage.getItem('ctrl_next_refresh')||'0');
+  if(next&&Date.now()>next&&DB.creds.buffer_token) fetchBufferAnalytics(true);
+}
+
+// ═══════════════════════════════════════════════════════
+// BUFFER CSV IMPORT — fallback if Buffer API unavailable
+// ═══════════════════════════════════════════════════════
+function importBufferCSV(input){
+  const file=input.files[0]; if(!file) return;
+  const reader=new FileReader();
+  reader.onload=e=>{
+    try{
+      const text=e.target.result;
+      const lines=text.split('\n').filter(l=>l.trim());
+      if(!lines.length){ showToast('Empty CSV file.'); return; }
+
+      // Parse CSV headers — Buffer exports vary slightly so we detect columns
+      const headers=parseCSVLine(lines[0]).map(h=>h.toLowerCase().trim());
+      const col=name=>headers.findIndex(h=>h.includes(name));
+
+      // Find the columns we care about
+      const iDate=col('date')||col('published')||col('created');
+      const iCaption=col('caption')||col('text')||col('message')||col('description');
+      const iViews=col('view')||col('play')||col('impression')||col('reach');
+      const iSaves=col('save')||col('bookmark');
+      const iShares=col('share')||col('repost');
+      const iComments=col('comment');
+      const iLink=col('link')||col('url')||col('permalink');
+      const iType=col('type')||col('media');
+
+      let imported=0, skipped=0;
+      const newPosts=[];
+
+      for(let i=1;i<lines.length;i++){
+        const cols=parseCSVLine(lines[i]);
+        if(!cols.length||!cols[0]) continue;
+
+        const caption=iCaption>-1?cols[iCaption]?.trim()||'':'';
+        const views=iViews>-1?parseInt(cols[iViews])||0:0;
+        const saves=iSaves>-1?parseInt(cols[iSaves])||0:0;
+        const shares=iShares>-1?parseInt(cols[iShares])||0:0;
+        const comments=iComments>-1?parseInt(cols[iComments])||0:0;
+        const reach=0;
+        const dateRaw=iDate>-1?cols[iDate]?.trim()||'':'';
+        const link=iLink>-1?cols[iLink]?.trim()||'':'';
+
+        // Parse date — Buffer uses various formats
+        let dateStr='';
+        if(dateRaw){
+          const d=new Date(dateRaw);
+          if(!isNaN(d)) dateStr=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+        }
+
+        // Skip rows with no useful data
+        if(!caption&&!views&&!dateStr){ skipped++; continue; }
+
+        const score=calcScore({views,saves,shares,comments,reach},DB.rWeights);
+
+        // Detect pillar from schedules by matching date
+        let pillar='?';
+        for(const p of ['S','L','C','H']){
+          if((DB.schedules[p]||[]).find(x=>x.date===dateStr)){ pillar=p; break; }
+        }
+
+        newPosts.push({
+          id:'csv_'+i+'_'+Date.now(),
+          caption,views,saves,shares,comments,reach,score,
+          pillar,
+          timestamp:dateStr,
+          permalink:link,
+          thumbnail_url:'',
+          queued:false,
+          scheduled_date:null,
+          source:'buffer_csv',
+        });
+        imported++;
+      }
+
+      if(!imported){ showToast(`No valid posts found in CSV. Check the file format.`); return; }
+
+      // Merge with existing — update if same date+caption exists, otherwise add
+      const existing=DB.rData.filter(v=>v.source!=='buffer_csv');
+      DB.rData=[...existing,...newPosts].sort((a,b)=>b.score-a.score);
+      save('r_data',DB.rData);
+      renderRTable(); updateRStats();
+      updateBadge('R',DB.rData.filter(v=>v.queued).length);
+      DB.lastRefresh.R=today()+' '+nowStr(); save('last_refresh',DB.lastRefresh);
+      showToast(`✓ Imported ${imported} posts${skipped?` (${skipped} skipped)`:''}`);
+    }catch(err){
+      showToast('CSV parse error: '+err.message);
+    }
+    // Reset input so same file can be re-imported
+    input.value='';
+  };
+  reader.readAsText(file);
+}
+
+// Parse a single CSV line handling quoted fields
+function parseCSVLine(line){
+  const result=[]; let cur=''; let inQuotes=false;
+  for(let i=0;i<line.length;i++){
+    const c=line[i];
+    if(c==='"'){ if(inQuotes&&line[i+1]==='"'){ cur+='"'; i++; } else { inQuotes=!inQuotes; } }
+    else if(c===','&&!inQuotes){ result.push(cur.trim()); cur=''; }
+    else{ cur+=c; }
+  }
+  result.push(cur.trim());
+  return result;
+}
+
+// ═══════════════════════════════════════════════════════
+// CALENDAR
+// ═══════════════════════════════════════════════════════
+let calYear=new Date().getFullYear(), calMonth=new Date().getMonth();
+const MONTHS=['January','February','March','April','May','June','July','August','September','October','November','December'];
+const DAYS=['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+
+function getAllScheduled(){
+  const posts=[];
+  // R queued
+  (DB.rData||[]).filter(v=>v.queued&&v.scheduled_date).forEach(v=>{
+    posts.push({pillar:'R',date:v.scheduled_date,time:document.getElementById('r-time')?.value||'19:00',caption:v.caption||'No caption'});
+  });
+  // S,L,C,H
+  ['S','L','C','H'].forEach(p=>{
+    (DB.schedules[p]||[]).forEach(x=>{
+      if(x.date) posts.push({pillar:p,date:x.date,time:document.getElementById(p.toLowerCase()+'-time')?.value||'19:00',caption:x.name});
+    });
+  });
+  return posts;
+}
+
+function dateStr(y,m,d){ return `${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`; }
+
+function renderCalendar(){
+  const grid=document.getElementById('cal-grid'); if(!grid) return;
+  document.getElementById('cal-month-label').textContent=MONTHS[calMonth]+' '+calYear;
+  const posts=getAllScheduled();
+  const byDate={};
+  posts.forEach(p=>{ if(!byDate[p.date]) byDate[p.date]=[]; byDate[p.date].push(p); });
+  const n=new Date(); const todayDs=dateStr(n.getFullYear(),n.getMonth(),n.getDate());
+  const firstDow=new Date(calYear,calMonth,1).getDay();
+  const startDow=firstDow===0?6:firstDow-1;
+  const lastD=new Date(calYear,calMonth+1,0).getDate();
+  const prevLastD=new Date(calYear,calMonth,0).getDate();
+  const cells=[];
+  for(let i=0;i<startDow;i++){
+    const day=prevLastD-startDow+i+1;
+    const m=calMonth-1<0?11:calMonth-1; const y=calMonth-1<0?calYear-1:calYear;
+    cells.push({ds:dateStr(y,m,day),day,current:false});
+  }
+  for(let d=1;d<=lastD;d++) cells.push({ds:dateStr(calYear,calMonth,d),day:d,current:true});
+  const rem=(7-cells.length%7)%7;
+  for(let i=1;i<=rem;i++){
+    const m=calMonth+1>11?0:calMonth+1; const y=calMonth+1>11?calYear+1:calYear;
+    cells.push({ds:dateStr(y,m,i),day:i,current:false});
+  }
+  const headers=DAYS.map(d=>`<div class="cal-day-header">${d}</div>`).join('');
+  grid.innerHTML=headers+cells.map(cell=>{
+    const dayPosts=byDate[cell.ds]||[];
+    const isToday=cell.ds===todayDs;
+    const hasPosts=dayPosts.length>0;
+    const showMax=3;
+    return `<div class="cal-cell ${!cell.current?'other-month':''} ${isToday?'today':''} ${hasPosts?'has-posts':''}"
+      ${hasPosts?`onclick="openCalDetail('${cell.ds}',event)"`:''}">
+      <div class="cal-cell-num">${cell.day}</div>
+      <div class="cal-posts">
+        ${dayPosts.slice(0,showMax).map(p=>`<div class="cal-post-pill p${p.pillar}"><span class="cal-post-code">${p.pillar}</span><span class="cal-post-name">${p.caption.slice(0,18)}</span></div>`).join('')}
+        ${dayPosts.length>showMax?`<div class="cal-more">+${dayPosts.length-showMax} more</div>`:''}
+      </div></div>`;
+  }).join('');
+  document.getElementById('badge-CAL').textContent=posts.length||'—';
+}
+
+function calPrev(){ calMonth--; if(calMonth<0){calMonth=11;calYear--;} renderCalendar(); }
+function calNext(){ calMonth++; if(calMonth>11){calMonth=0;calYear++;} renderCalendar(); }
+function calToday(){ calYear=new Date().getFullYear(); calMonth=new Date().getMonth(); renderCalendar(); }
+
+function openCalDetail(ds,e){
+  const posts=getAllScheduled().filter(p=>p.date===ds); if(!posts.length) return;
+  const det=document.getElementById('cal-detail');
+  const [y,m,d]=ds.split('-').map(Number);
+  const dow=new Date(y,m-1,d).getDay();
+  document.getElementById('cal-detail-date').textContent=DAYS[dow===0?6:dow-1]+' · '+d+' '+MONTHS[m-1]+' '+y;
+  document.getElementById('cal-detail-posts').innerHTML=posts.map(p=>`
+    <div class="cal-detail-post">
+      <div class="cal-detail-header"><div class="pillar-badge ${p.pillar}">${p.pillar}</div><span class="cal-detail-time">⏱ ${p.time} GMT</span></div>
+      <div class="cal-detail-caption">${p.caption.replace(/[<>]/g,'').slice(0,100)}</div>
+    </div>`).join('');
+  const rect=e.currentTarget.getBoundingClientRect();
+  det.style.left=Math.min(rect.left,window.innerWidth-300)+'px';
+  det.style.top=Math.min(rect.bottom+8,window.innerHeight-300)+'px';
+  det.classList.add('open');
+  e.stopPropagation();
+}
+function closeCalDetail(){ document.getElementById('cal-detail').classList.remove('open'); }
+document.addEventListener('click',e=>{ const d=document.getElementById('cal-detail'); if(d?.classList.contains('open')&&!d.contains(e.target)) closeCalDetail(); });
+
+// ═══════════════════════════════════════════════════════
+// HOOK NOTES (H tab)
+// ═══════════════════════════════════════════════════════
+function openHookModal(fileId,name,views){
+  pendingHook=fileId;
+  document.getElementById('hm-views').textContent=fmt(views)+' views · '+name;
+  document.getElementById('hm-note').value=DB.hookNotes[fileId]||'';
+  document.getElementById('hook-modal').classList.add('open');
+}
+function closeHookModal(){ document.getElementById('hook-modal').classList.remove('open'); pendingHook=null; }
+function saveHookNote(){
+  if(!pendingHook) return;
+  const note=document.getElementById('hm-note').value.trim();
+  if(note) DB.hookNotes[pendingHook]=note; else delete DB.hookNotes[pendingHook];
+  save('hook_notes',DB.hookNotes);
+  closeHookModal(); showToast('Hook note saved ✓');
+}
+
+// ═══════════════════════════════════════════════════════
+// TOAST
+// ═══════════════════════════════════════════════════════
+let toastT;
+function showToast(msg){
+  let t=document.getElementById('toast');
+  if(!t){ t=document.createElement('div'); t.id='toast'; t.style.cssText='position:fixed;bottom:24px;right:24px;background:#1a1b22;border:1px solid #2a2b34;border-radius:8px;padding:12px 18px;font-size:13px;color:#e8e9f0;z-index:9000;transition:all .3s;font-family:Space Grotesk,sans-serif;box-shadow:0 8px 24px rgba(0,0,0,.4);'; document.body.appendChild(t); }
+  t.textContent=msg; t.style.opacity='1'; t.style.transform='translateY(0)';
+  clearTimeout(toastT); toastT=setTimeout(()=>{ t.style.opacity='0'; t.style.transform='translateY(8px)'; },3000);
+}
+
+// ═══════════════════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════════════════
+function init(){
+  if(DB.rData.length){ renderRTable(); updateRStats(); updateBadge('R',DB.rData.filter(v=>v.queued).length); }
+  ['S','L','C','H'].forEach(p=>{
+    const items=DB.schedules[p]||[];
+    if(items.length) refreshPillarUI(p);
+  });
+  const now=new Date();
+  const lastDay=new Date(now.getFullYear(),now.getMonth()+1,0).getDate();
+  const publishDate=`${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${lastDay}`;
+  renderCalendar();
+  // Check if 24h auto-refresh is due
+  checkAutoRefresh();
+}
+init();
+</script>
+</body>
+</html>
